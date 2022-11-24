@@ -7,22 +7,32 @@ export default class Board extends React.Component {
     socket = io.connect("http://localhost:8080");
     ctx;
     isDrawing = false;
+    size = this.props.size;
+    color = this.props.color;
     constructor(props) {
         super(props);
-        this.socket.on("canvas-data", function (data) {
-           // var root =this;
-            //var interval = setInterval(function () {
-                //if(root.isDrawing === true) return;
-                //root.isDrawing = true;
-                var image = new Image();
-                var canvas = document.querySelector("#board");
-                var ctx = canvas.getContext('2d');
-                image.onload = function () {
-                    ctx.drawImage(image, 0, 0);
-                };
-                image.src = data;
-            //}, 10);
+        this.socket.on('canvas-data', (data) => {
+            var canvas = document.querySelector("#board");
+            var ctx = canvas.getContext('2d');
 
+
+            //ctx.beginPath();
+            
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = data.size;
+            ctx.strokeStyle = data.color;
+            //ctx.moveTo(data.x, data.y);
+            ctx.lineTo(data.x, data.y);
+            //ctx.closePath();
+            ctx.stroke();
+           
+            //console.log("+++++++++++++++");
+            //console.log({x:data.x,y:data.y});
+        })
+        this.socket.on('ondown', (data) => {
+            this.ctx.moveTo(data.x, data.y);
+            
         })
     }
     componentDidMount() {
@@ -34,53 +44,58 @@ export default class Board extends React.Component {
     }
     drawOnCanvas() {
         var canvas = document.querySelector('#board');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+
         this.ctx = canvas.getContext('2d');
         var ctx = this.ctx;
-
-        var sketch = document.querySelector('#sketch');
-        var sketch_style = getComputedStyle(sketch);
-        canvas.width = parseInt(sketch_style.getPropertyValue('width'));
-        canvas.height = parseInt(sketch_style.getPropertyValue('height'));
-
-        var mouse = { x: 0, y: 0 };
-        var last_mouse = { x: 0, y: 0 };
-
-        /* Mouse Capturing Work */
-        canvas.addEventListener('mousemove', function (e) {
-            last_mouse.x = mouse.x;
-            last_mouse.y = mouse.y;
-
-            mouse.x = e.pageX - this.offsetLeft;
-            mouse.y = e.pageY - this.offsetTop;
-        }, false);
+        
 
 
-        /* Drawing on Paint App */
+        let x;
+        let y;
+        let mouseDown = false;
+
         ctx.lineWidth = this.props.size;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
         ctx.strokeStyle = this.props.color;
+        
+        window.onmousedown = (e) => {
+            ctx.moveTo(x, y);
+            this.socket.emit('down', { x, y });
+            mouseDown = true;
+        }
+        window.onmouseup = (e) => {
+            mouseDown = false;
+        }
+        // this.socket.on("canvas-data", ({x,y})=>{
+        //     //ctx.moveTo(x,y);
+        //     ctx.lineTo(x,y);
+        //     ctx.stroke();
+        // })
+        
 
-        canvas.addEventListener('mousedown', function (e) {
-            canvas.addEventListener('mousemove', onPaint, false);
-        }, false);
+        this.socket.on('ondown', ({x,y})=>{
+            ctx.moveTo(x,y);
+        })
+        window.onmousemove = (e) => {
+            x = e.clientX;
+            y = e.clientY;
 
-        canvas.addEventListener('mouseup', function () {
-            canvas.removeEventListener('mousemove', onPaint, false);
-        }, false);
-        var root = this;
-        var onPaint = function () {
-            ctx.beginPath();
-            ctx.moveTo(last_mouse.x, last_mouse.y);
-            ctx.lineTo(mouse.x, mouse.y);
-            ctx.closePath();
-            ctx.stroke();
-            if (root.timeout != undefined) clearTimeout(root.timeout);
-            root.timeout = setTimeout(function () {
-                var base64ImageData = canvas.toDataURL("image/png");
-                root.socket.emit("canvas-data", base64ImageData);
-            }, 0)
-        };
+            //console.log({x,y})
+            if (mouseDown) {
+                this.socket.emit("canvas-data", { x, y, size:this.size,color:this.color });
+
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+        }
+
+
+
+
     }
     render() {
         return (
