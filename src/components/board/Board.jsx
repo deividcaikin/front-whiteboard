@@ -4,11 +4,13 @@ import io from 'socket.io-client'
 
 export default class Board extends React.Component {
     timeout;
-    socket = io.connect("http://localhost:8080");
+    socket = io.connect("http://localhost:8080",
+        {
+            upgrade: false,
+            transports: ['websocket'], reconnection: true, forceNew: false
+        });
     ctx;
     isDrawing = false;
-    size = this.props.size;
-    color = this.props.color;
     constructor(props) {
         super(props);
         this.socket.on('canvas-data', (data) => {
@@ -17,30 +19,36 @@ export default class Board extends React.Component {
 
 
             //ctx.beginPath();
-            
+
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-            ctx.lineWidth = data.size;
-            ctx.strokeStyle = data.color;
+            //ctx.lineWidth = data.size;
+            //ctx.strokeStyle = data.color;
             //ctx.moveTo(data.x, data.y);
             ctx.lineTo(data.x, data.y);
             //ctx.closePath();
             ctx.stroke();
-           
-            //console.log("+++++++++++++++");
-            //console.log({x:data.x,y:data.y});
         })
         this.socket.on('ondown', (data) => {
             this.ctx.moveTo(data.x, data.y);
-            
+
         })
+        // this.socket.on('onclear', (data) => {
+        //     var canvas = document.querySelector("#board");
+        //     var ctx = canvas.getContext('2d');
+        //     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+        //     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        //     const img = new Image(window.innerWidth, window.innerHeight);
+        //     img.src = canvas.toDataURL();
+
+        // })
     }
     componentDidMount() {
         this.drawOnCanvas();
     }
     componentWillReceiveProps(newProps) {
-        this.ctx.strokeStyle = newProps.color;
-        this.ctx.lineWidth = newProps.size;
+        //this.ctx.strokeStyle = newProps.color;
+        //this.ctx.lineWidth = newProps.size;
     }
     drawOnCanvas() {
         var canvas = document.querySelector('#board');
@@ -50,18 +58,18 @@ export default class Board extends React.Component {
 
         this.ctx = canvas.getContext('2d');
         var ctx = this.ctx;
-        
+
 
 
         let x;
         let y;
         let mouseDown = false;
 
-        ctx.lineWidth = this.props.size;
+        ctx.lineWidth = 5;
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-        ctx.strokeStyle = this.props.color;
-        
+        ctx.strokeStyle = 5;
+
         window.onmousedown = (e) => {
             ctx.moveTo(x, y);
             this.socket.emit('down', { x, y });
@@ -70,23 +78,18 @@ export default class Board extends React.Component {
         window.onmouseup = (e) => {
             mouseDown = false;
         }
-        // this.socket.on("canvas-data", ({x,y})=>{
-        //     //ctx.moveTo(x,y);
-        //     ctx.lineTo(x,y);
-        //     ctx.stroke();
-        // })
-        
 
-        this.socket.on('ondown', ({x,y})=>{
-            ctx.moveTo(x,y);
-        })
+
+        // this.socket.on('ondown', ({ x, y }) => {
+        //     ctx.moveTo(x, y);
+        // })
         window.onmousemove = (e) => {
             x = e.clientX;
-            y = e.clientY;
+            y = e.clientY-30;
 
             //console.log({x,y})
             if (mouseDown) {
-                this.socket.emit("canvas-data", { x, y, size:this.size,color:this.color });
+                this.socket.emit("canvas-data", { x, y });
 
                 ctx.lineTo(x, y);
                 ctx.stroke();
@@ -97,9 +100,27 @@ export default class Board extends React.Component {
 
 
     }
+    // clearScreen= (e) => {
+    //     console.log("Clear screen");
+    //     var canvas = document.querySelector("#board");
+    //     var ctx = canvas.getContext('2d');
+    //     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+    //     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+
+    //     const img = new Image(window.innerWidth, window.innerHeight);
+    //     img.onload = function(){
+    //         ctx.drawImage(img,0,0);
+    //     }
+    //     img.src = canvas.toDataURL();
+    //     this.socket.emit("clear", img);
+    // }
     render() {
         return (
             <>
+                <div>
+                    <button className='header'>Simple Whiteboard</button>
+                    {/* <button className='btn' >Clear</button> */}
+                </div>
                 <div className="sketch" id="sketch">
                     <canvas className="board" id="board"></canvas>
                 </div>
