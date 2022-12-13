@@ -4,7 +4,8 @@ import io from 'socket.io-client'
 
 export default class Board extends React.Component {
     timeout;
-    socket = io.connect("http://localhost:8080",
+    
+    socket = io.connect(window.location.hostname+":8080",
         {
             upgrade: false,
             transports: ['websocket'], reconnection: true, forceNew: false
@@ -17,38 +18,29 @@ export default class Board extends React.Component {
             var canvas = document.querySelector("#board");
             var ctx = canvas.getContext('2d');
 
-
-            //ctx.beginPath();
-
             ctx.lineJoin = 'round';
             ctx.lineCap = 'round';
-            //ctx.lineWidth = data.size;
-            //ctx.strokeStyle = data.color;
-            //ctx.moveTo(data.x, data.y);
             ctx.lineTo(data.x, data.y);
-            //ctx.closePath();
             ctx.stroke();
         })
         this.socket.on('ondown', (data) => {
             this.ctx.moveTo(data.x, data.y);
 
         })
-        // this.socket.on('onclear', (data) => {
-        //     var canvas = document.querySelector("#board");
-        //     var ctx = canvas.getContext('2d');
-        //     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-        //     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
-        //     const img = new Image(window.innerWidth, window.innerHeight);
-        //     img.src = canvas.toDataURL();
+        this.socket.on('onclear', (data) => {
+            var canvas = document.querySelector("#board");
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'rgba(0, 0, 0, 0)';
+            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+            const img = new Image(window.innerWidth, window.innerHeight);
+            img.src = canvas.toDataURL();
 
-        // })
+        })
     }
     componentDidMount() {
         this.drawOnCanvas();
     }
     componentWillReceiveProps(newProps) {
-        //this.ctx.strokeStyle = newProps.color;
-        //this.ctx.lineWidth = newProps.size;
     }
     drawOnCanvas() {
         var canvas = document.querySelector('#board');
@@ -79,15 +71,10 @@ export default class Board extends React.Component {
             mouseDown = false;
         }
 
-
-        // this.socket.on('ondown', ({ x, y }) => {
-        //     ctx.moveTo(x, y);
-        // })
         window.onmousemove = (e) => {
             x = e.clientX;
             y = e.clientY-30;
 
-            //console.log({x,y})
             if (mouseDown) {
                 this.socket.emit("canvas-data", { x, y });
 
@@ -100,20 +87,7 @@ export default class Board extends React.Component {
 
 
     }
-    // clearScreen= (e) => {
-    //     console.log("Clear screen");
-    //     var canvas = document.querySelector("#board");
-    //     var ctx = canvas.getContext('2d');
-    //     ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-    //     ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
 
-    //     const img = new Image(window.innerWidth, window.innerHeight);
-    //     img.onload = function(){
-    //         ctx.drawImage(img,0,0);
-    //     }
-    //     img.src = canvas.toDataURL();
-    //     this.socket.emit("clear", img);
-    // }
     render() {
         return (
             <>
